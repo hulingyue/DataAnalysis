@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.datasets import load_breast_cancer
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
@@ -65,7 +66,7 @@ if bool_Hour:
     data.to_csv("./powerUserByHour.csv")
     del data, df
 
-if False:
+if bool_Hour:
     data = pd.read_csv("./powerUserByHour.csv")
     data['date'] = pd.to_datetime(data['date'], format="%Y-%m-%d %H:%M:%S")
     df = data.set_index('date')
@@ -85,6 +86,7 @@ if False:
     data['week_year'] = pd.DataFrame(df.index.weekofyear)  # 一年当中的第几周
     # print(data.corr()[u'Appliances'])
     data = data.drop(['date'], axis=1)
+    data.dropna(axis=0, how='any', inplace=True)
     data.to_csv("./dataForTrain.csv")
     del data, df
 
@@ -99,22 +101,56 @@ if True:
     print("划分数据集成功......")
     import os
     from sklearn.externals import joblib
+
     if os.path.exists("gbrt_model.m"):
         gbrt = joblib.load("gbrt_model.m")
         print("模型加载成功！")
         pass
     else:
         print("开始训练模型......")
-        gbrt = GradientBoostingClassifier(random_state=1234, learning_rate=1)
+
+        '''
+        GradientBoostingRegressor(alpha=0.9, criterion='friedman_mse', init=None,
+             learning_rate=0.2, loss='ls', max_depth=6, max_features=None,
+             max_leaf_nodes=None, min_impurity_decrease=0.0,
+             min_impurity_split=None, min_samples_leaf=1,
+             min_samples_split=2, min_weight_fraction_leaf=0.005,
+             n_estimators=115, n_iter_no_change=None, presort='auto',
+             random_state=1234, subsample=0.9, tol=0.0001,
+             validation_fraction=0.1, verbose=0, warm_start=False)
+93.295606 %
+49.867632 %
+        '''
+        '''
+        GradientBoostingRegressor(alpha=0.9, criterion='friedman_mse', init=None,
+             learning_rate=0.2, loss='lad', max_depth=6, max_features=None,
+             max_leaf_nodes=None, min_impurity_decrease=0.0,
+             min_impurity_split=None, min_samples_leaf=1,
+             min_samples_split=2, min_weight_fraction_leaf=0.005,
+             n_estimators=150, n_iter_no_change=None, presort='auto',
+             random_state=1234, subsample=0.9, tol=0.0001,
+             validation_fraction=0.1, verbose=0, warm_start=False)
+54.551371 %
+33.227432 %
+        '''
+        gbrt = GradientBoostingRegressor(alpha=0.9, criterion='friedman_mse', init=None,
+                                         learning_rate=0.2, loss='ls', max_depth=6, max_features=None,
+                                         max_leaf_nodes=None, min_impurity_decrease=0.0,
+                                         min_impurity_split=None, min_samples_leaf=1,
+                                         min_samples_split=2, min_weight_fraction_leaf=0.005,
+                                         n_estimators=115, n_iter_no_change=None, presort='auto',
+                                         random_state=1234, subsample=0.9, tol=0.0001,
+                                         validation_fraction=0.1, verbose=0, warm_start=False)
         gbrt.fit(x_train, y_train)
         joblib.dump(gbrt, "gbrt_model.m")
+        print(gbrt)
 
     train_predict = gbrt.predict(x_train)
 
     print("%2f" % (gbrt.score(x_train, y_train) * 100), "%")
     print("%2f" % (gbrt.score(x_test, y_test) * 100), "%")
     predict = gbrt.predict(x_test)
-    if gbrt.score(x_test, y_test) < 0.1:
+    if gbrt.score(x_test, y_test) < 0.5:
         os.remove('gbrt_model.m')
 
     # # 平均值绝对误差
