@@ -133,7 +133,7 @@ if True:
 54.551371 %
 33.227432 %
         '''
-        gbrt = GradientBoostingRegressor(alpha=0.9, criterion='friedman_mse', init=None,
+        gbrt = GradientBoostingRegressor(alpha=0.8, criterion='friedman_mse', init=None,
                                          learning_rate=0.2, loss='ls', max_depth=6, max_features=None,
                                          max_leaf_nodes=None, min_impurity_decrease=0.0,
                                          min_impurity_split=None, min_samples_leaf=1,
