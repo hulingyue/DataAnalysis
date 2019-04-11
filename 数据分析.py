@@ -5,9 +5,9 @@ from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.datasets import load_breast_cancer
 from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import r2_score
 
 if True:
     bool_dealData = False
@@ -95,31 +95,43 @@ if True:
 
     data = pd.read_csv("./dataForTrain.csv")
     data = data.drop(['lights'], axis=1)
-    print(data.columns.values.tolist())
+    # print(data.columns.values.tolist())
     x_train, x_test, y_train, y_test = train_test_split(data.drop(['Appliances'], axis=1), data['Appliances'],
                                                         random_state=1234)
-    print("划分数据集成功......")
+    # print("划分数据集成功......")
     import os
     from sklearn.externals import joblib
 
     if os.path.exists("gbrt_model.m"):
         gbrt = joblib.load("gbrt_model.m")
-        print("模型加载成功！")
+        # print("模型加载成功！")
         pass
     else:
-        print("开始训练模型......")
+        # print("开始训练模型......")
 
         '''
-        GradientBoostingRegressor(alpha=0.9, criterion='friedman_mse', init=None,
-             learning_rate=0.2, loss='ls', max_depth=6, max_features=None,
-             max_leaf_nodes=None, min_impurity_decrease=0.0,
-             min_impurity_split=None, min_samples_leaf=1,
-             min_samples_split=2, min_weight_fraction_leaf=0.005,
-             n_estimators=115, n_iter_no_change=None, presort='auto',
-             random_state=1234, subsample=0.9, tol=0.0001,
-             validation_fraction=0.1, verbose=0, warm_start=False)
-93.295606 %
-49.867632 %
+        gbrt = GradientBoostingRegressor(alpha=0.9, criterion='friedman_mse', init=None,
+                                         learning_rate=0.198, loss='ls', max_depth=6, max_features=None,
+                                         max_leaf_nodes=None, min_impurity_decrease=0.0,
+                                         min_impurity_split=None, min_samples_leaf=1,
+                                         min_samples_split=2, min_weight_fraction_leaf=0.005,
+                                         n_estimators=105, n_iter_no_change=None, presort='auto',
+                                         random_state=1234, subsample=0.985, tol=0.0001,
+                                         validation_fraction=0.1, verbose=0, warm_start=False)
+训练集拟合度：92.205130 %
+测试集准确度：52.192902 %
+
+训练集性能：
+RMSE: 133.1835356733243
+R: 0.9220513005185618
+MAE: 83.57359121541228
+MAPE: 15.598958150160886 %
+
+测试集性能：
+RMSE: 352.9362069341872
+R: 0.5219290194283241
+MAE: 213.98266540173745
+MAPE: 35.72890699718826 %
         '''
         '''
         GradientBoostingRegressor(alpha=0.9, criterion='friedman_mse', init=None,
@@ -133,84 +145,120 @@ if True:
 54.551371 %
 33.227432 %
         '''
-        gbrt = GradientBoostingRegressor(alpha=0.8, criterion='friedman_mse', init=None,
-                                         learning_rate=0.2, loss='ls', max_depth=6, max_features=None,
-                                         max_leaf_nodes=None, min_impurity_decrease=0.0,
-                                         min_impurity_split=None, min_samples_leaf=1,
-                                         min_samples_split=2, min_weight_fraction_leaf=0.005,
-                                         n_estimators=115, n_iter_no_change=None, presort='auto',
-                                         random_state=1234, subsample=0.9, tol=0.0001,
-                                         validation_fraction=0.1, verbose=0, warm_start=False)
+        # param_test1 = {'n_estimators': range(197, 200, 1)}
+        # gbrt = GridSearchCV(estimator=GradientBoostingRegressor(alpha=0.8, criterion='friedman_mse', init=None,
+        #                                                         learning_rate=0.2, loss='ls', max_depth=6,
+        #                                                         max_features=None,
+        #                                                         max_leaf_nodes=None, min_impurity_decrease=0.0,
+        #                                                         min_impurity_split=None, min_samples_leaf=1,
+        #                                                         min_samples_split=2, min_weight_fraction_leaf=0.005,
+        #                                                         n_iter_no_change=None, presort='auto',
+        #                                                         random_state=1234, subsample=0.9, tol=0.0001,
+        #                                                         validation_fraction=0.1, verbose=0, warm_start=False),
+        #                     param_grid=param_test1, cv=3)
+        gbrt = GradientBoostingRegressor(loss='huber', learning_rate=0.1, n_estimators=196,
+                                         subsample=1.0, criterion='friedman_mse', min_samples_split=2,
+                                         min_samples_leaf=1, min_weight_fraction_leaf=0.,
+                                         max_depth=3, min_impurity_decrease=0.,
+                                         min_impurity_split=None, init=None, random_state=None,
+                                         max_features=None, alpha=0.9, verbose=0, max_leaf_nodes=None,
+                                         warm_start=False, presort='auto', validation_fraction=0.1,
+                                         n_iter_no_change=None, tol=1e-4)
         gbrt.fit(x_train, y_train)
         joblib.dump(gbrt, "gbrt_model.m")
-        print(gbrt)
+        # print(gbrt)
 
     train_predict = gbrt.predict(x_train)
 
-    print("%2f" % (gbrt.score(x_train, y_train) * 100), "%")
-    print("%2f" % (gbrt.score(x_test, y_test) * 100), "%")
+    print("训练集拟合度：%2f" % (gbrt.score(x_train, y_train) * 100), "%")
+    print("测试集准确度：%2f" % (gbrt.score(x_test, y_test) * 100), "%", end="\n\n")
     predict = gbrt.predict(x_test)
-    if gbrt.score(x_test, y_test) < 0.5:
+    if gbrt.score(x_test, y_test) < 0.55:
         os.remove('gbrt_model.m')
+    print("训练集性能：")
+    print("RMSE:", (((y_train - train_predict) ** 2).sum() / len(train_predict)) ** 0.5)
+    print("R:", r2_score(y_train, train_predict))
+    print("MAE:", abs(y_train - train_predict).sum() / len(train_predict))
+    print("MAPE:", (abs((y_train - train_predict) / y_train).sum()) / len(train_predict) * 100, "%", end="\n\n")
+    print("测试集性能：")
+    print("RMSE:", (((y_test - predict) ** 2).sum() / len(predict)) ** 0.5)
+    print("R:", r2_score(y_test, predict))
+    print("MAE:", abs(y_test - predict).sum() / len(predict))
+    print("MAPE:", (abs((y_test - predict) / y_test).sum()) / len(predict) * 100, "%")
 
-    # # 平均值绝对误差
-    # print(mean_squared_error(y_test, predict))
-    mes = float()
-    if len(y_test) == len(predict):
-        for i in range(0, len(y_test)):
-            mes = mes + abs(list(y_test)[i] - predict[i])
-    else:
-        raise KeyError((len(y_test), len(predict)))
-    mes = mes / len(y_test)
-    print("Mes", mes)
+    # param_test1 = {'n_estimators': range(20, 81, 10)}
+    # gsearch1 = GridSearchCV(estimator=GradientBoostingClassifier(learning_rate=0.1, min_samples_split=300,
+    #                                                              min_samples_leaf=20, max_depth=8, max_features='sqrt',
+    #                                                              subsample=0.8, random_state=10),
+    #                         param_grid=param_test1, scoring='roc_auc', iid=False, cv=5)
+    # gsearch1.fit(X, y)
+    # gsearch1.grid_scores_, gsearch1.best_params_, gsearch1.best_score_
+    param_test1 = {'n_estimators': range(80, 200, 1), 'learning_rate': [x / 100 for x in range(1, 100)]}
+    gbrt = GridSearchCV(
+        estimator=GradientBoostingRegressor(loss='huber', subsample=1.0, criterion='friedman_mse', min_samples_split=2,
+                                            min_samples_leaf=1, min_weight_fraction_leaf=0.,
+                                            max_depth=3, min_impurity_decrease=0.,
+                                            min_impurity_split=None, init=None, random_state=None,
+                                            max_features=None, alpha=0.9, verbose=0, max_leaf_nodes=None,
+                                            warm_start=False, presort='auto', validation_fraction=0.1,
+                                            n_iter_no_change=None, tol=1e-4), param_grid=param_test1, n_jobs=-1, cv=5)
+    gbrt.fit(x_train, y_train)
+    train_predict = gbrt.predict(x_train)
 
-    # for i in range(10, 100):
-    #     gbrt = GradientBoostingClassifier(n_estimators=i, random_state=1234, learning_rate=0.1)
-    #     gbrt.fit(x_train, y_train)
-    #     train_predict = gbrt.predict(x_train)
-    #
-    #     print(i)
-    #     print("%2f" % (gbrt.score(x_train, y_train) * 100), "%")
-    #     print("%2f" % (gbrt.score(x_test, y_test) * 100), "%")
-    #     predict = gbrt.predict(x_test)
-    #
-    #     # # 平均值绝对误差
-    #     # print(mean_squared_error(y_test, predict))
-    #     mes = float()
-    #     if len(y_test) == len(predict):
-    #         for i in range(0, len(y_test)):
-    #             mes = mes + abs(list(y_test)[i] - predict[i])
-    #     else:
-    #         raise KeyError((len(y_test), len(predict)))
-    #     mes = mes / len(y_test)
-    #     print("Mes", mes)
+    print("训练集拟合度：%2f" % (gbrt.score(x_train, y_train) * 100), "%")
+    print("测试集准确度：%2f" % (gbrt.score(x_test, y_test) * 100), "%", end="\n\n")
+    predict = gbrt.predict(x_test)
+    try:
+        if gbrt.score(x_test, y_test) < 0.55:
+            os.remove('gbrt_model.m')
+    except Exception as e:
+        print(e)
+    print("训练集性能：")
+    print("RMSE:", (((y_train - train_predict) ** 2).sum() / len(train_predict)) ** 0.5)
+    print("R:", r2_score(y_train, train_predict))
+    print("MAE:", abs(y_train - train_predict).sum() / len(train_predict))
+    print("MAPE:", (abs((y_train - train_predict) / y_train).sum()) / len(train_predict) * 100, "%", end="\n\n")
+    print("测试集性能：")
+    print("RMSE:", (((y_test - predict) ** 2).sum() / len(predict)) ** 0.5)
+    print("R:", r2_score(y_test, predict))
+    print("MAE:", abs(y_test - predict).sum() / len(predict))
+    print("MAPE:", (abs((y_test - predict) / y_test).sum()) / len(predict) * 100, "%")
 
-    # for i in range(110, 200):
-    #     gbrt = GradientBoostingClassifier(n_estimators=i, learning_rate=0.05, min_samples_split=30, max_features='sqrt',
-    #                                       subsample=0.8, max_depth=4, random_state=1234)
-    #     gbrt.fit(x_train, y_train)
-    #     gbrt.predict(x_test)
-    #     test_score = gbrt.score(x_test, y_test)
-    #     if test_score > 0.50:
-    #         print(i, ":")
-    #         print(gbrt.score(x_train, y_train))
-    #         print(gbrt.score(x_test, y_test))
-    #     predict = gbrt.predict(x_test)
-    #     print(mean_squared_error(y_test, predict))
+    if False:
+        max = 0.0
+        for i in range(80, 200):
+            gbrt = GradientBoostingRegressor(loss='huber', learning_rate=0.1, n_estimators=i,
+                                             subsample=1.0, criterion='friedman_mse', min_samples_split=2,
+                                             min_samples_leaf=1, min_weight_fraction_leaf=0.,
+                                             max_depth=3, min_impurity_decrease=0.,
+                                             min_impurity_split=None, init=None, random_state=None,
+                                             max_features=None, alpha=0.9, verbose=0, max_leaf_nodes=None,
+                                             warm_start=False, presort='auto', validation_fraction=0.1,
+                                             n_iter_no_change=None, tol=1e-4)
+            gbrt.fit(x_train, y_train)
+            train_predict = gbrt.predict(x_train)
 
-    '''
-        使用示例
-    '''
-    # cancer = load_breast_cancer()
-    # x_train, x_test, y_train, y_test = train_test_split(cancer.data, cancer.target, random_state=0)
-    # gbrt = GradientBoostingClassifier()
-    # gbrt.fit(x_train, y_train)
-    # print(gbrt.score(x_train, y_train))
-    # print(gbrt.score(x_test, y_test))
-    #
-    # gbrt = GradientBoostingClassifier(n_estimators=100, learning_rate=0.01)
+            x = gbrt.score(x_test, y_test)
+            print(i)
+            if x > max:
+                max = x
+                predict = gbrt.predict(x_test)
 
-    # print(data)
+                print("训练集拟合度：%2f" % (gbrt.score(x_train, y_train) * 100), "%")
+                print("测试集准确度：%2f" % (gbrt.score(x_test, y_test) * 100), "%", end="\n\n")
+
+                print("训练集性能：")
+                print("RMSE:", (((y_train - train_predict) ** 2).sum() / len(train_predict)) ** 0.5)
+                print("R:", r2_score(y_train, train_predict))
+                print("MAE:", abs(y_train - train_predict).sum() / len(train_predict))
+                print("MAPE:", (abs((y_train - train_predict) / y_train).sum()) / len(train_predict) * 100, "%",
+                      end="\n\n")
+                print("测试集性能：")
+                print("RMSE:", (((y_test - predict) ** 2).sum() / len(predict)) ** 0.5)
+                print("R:", r2_score(y_test, predict))
+                print("MAE:", abs(y_test - predict).sum() / len(predict))
+                print("MAPE:", (abs((y_test - predict) / y_test).sum()) / len(predict) * 100, "%", end="\n\n")
+
     del data
 
 if bool_2016_01_12:
